@@ -12,21 +12,23 @@ import { Navbar } from "@/components/Molecules/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWallet } from "@solana/wallet-adapter-react";
 import api from "@/services/config/api";
+import axios from "axios";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-
- /* Faz a chamada à rota chatbot/interact,
+/* Faz a chamada à rota chatbot/interact,
  * enviando o prompt (input_user) e address da carteira.
  */
 async function interactChatbot(input_user: string, address: string) {
   try {
-    const response = await api.post(
-      "http://localhost:5500/chatbot/interact",
+    const response = await axios.post(
+      "http://0.0.0.0:5500/chatbot/interact",
       { input_user, address },
       {
         headers: {
-					"Content-Type": "application/json",
-					"x-api-key": "WDAO4Z1Z503DWJH7060GIYGR0TWIIPBM",
-				},
+          "Content-Type": "application/json",
+          "x-api-key": "WDAO4Z1Z503DWJH7060GIYGR0TWIIPBM",
+        },
       }
     );
     return response.data;
@@ -56,9 +58,9 @@ export default function ChatInterface() {
   const [prompt, setPrompt] = useState("");
   const [fetchedTransactions, setFetchedTransactions] = useState<any[]>([]);
 
-// Hook para acessar dados da wallet do usuário (publicKey, etc.)
+  // Hook para acessar dados da wallet do usuário (publicKey, etc.)
   const { connected } = useWallet();
-//publicKey real: const { publicKey } = useWallet();
+  //publicKey real: const { publicKey } = useWallet();
   // Aqui está fixo como exemplo:
   const publicKey = "2nuW7MWYsGdLmsSf5mHrjgn6NqyrS5USai6fdisnUQc4";
 
@@ -100,7 +102,8 @@ export default function ChatInterface() {
       const json = await interactChatbot(prompt, publicKey.toString());
 
       // Extrai a resposta textual (se existir) ou usa um fallback
-      const llmAnswer = json.report || "Aqui estão as transações que encontrei:";
+      const llmAnswer =
+        json.report || "Aqui estão as transações que encontrei:";
 
       // Cria um novo objeto Chat com duas mensagens (usuário e LLM)
       const newChat: Chat = {
@@ -157,7 +160,8 @@ export default function ChatInterface() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.1 }}
         style={{
-          background: "linear-gradient(to right, transparent, #9C88FF15, transparent)",
+          background:
+            "linear-gradient(to right, transparent, #9C88FF15, transparent)",
         }}
       >
         <motion.div
@@ -252,7 +256,7 @@ export default function ChatInterface() {
                   className="flex-1 flex"
                 >
                   {/* Painel esquerdo: Chat */}
-                  <div className="w-1/2 p-6 space-y-4 overflow-y-auto">
+                  <div className="w-1/2 p-6 space-y-4">
                     {currentChat.messages.map((message, index) => (
                       <div
                         key={index}
@@ -287,7 +291,74 @@ export default function ChatInterface() {
                                 <path d="M12 2a1 1 0 011 1v1h2a4 4 0 014 4v3a1 1 0 01-.293.707l-1.207 1.207a4.984 4.984 0 01-1.574.933V18a2 2 0 11-4 0h-2a2 2 0 11-4 0v-3.153a4.984 4.984 0 01-1.574-.933L3.293 11.707A1 1 0 013 11V8a4 4 0 014-4h2V3a1 1 0 011-1zm5 8a3 3 0 10-6 0 3 3 0 006 0z" />
                               </svg>
                             </div>
-                            <p className="text-gray-300">{message.content}</p>
+                            <div className="max-h-[65rem] overflow-y-auto pr-2">
+                              {message.content.startsWith("#") ? (
+                                <article className="text-sm">
+                                  <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                      h1: ({ ...props }) => (
+                                        <h1
+                                          className="text-xl text-white font-sans font-semibold mb-4"
+                                          {...props}
+                                        />
+                                      ),
+                                      h2: ({ ...props }) => (
+                                        <h2
+                                          className="text-lg text-white font-sans font-semibold mb-3"
+                                          {...props}
+                                        />
+                                      ),
+                                      h3: ({ ...props }) => (
+                                        <h3
+                                          className="text-base text-white font-sans font-medium mb-2"
+                                          {...props}
+                                        />
+                                      ),
+                                      // Make sure h4 is styled so it looks like a proper subtitle:
+                                      h4: ({ ...props }) => (
+                                        <h4
+                                          className="text-white font-sans font-medium mb-2"
+                                          {...props}
+                                        />
+                                      ),
+                                      p: ({ ...props }) => (
+                                        <p
+                                          className="text-gray-300 mb-2 whitespace-pre-wrap"
+                                          {...props}
+                                        />
+                                      ),
+                                      ul: ({ ...props }) => (
+                                        <ul
+                                          className="list-disc list-inside text-gray-300 mb-2"
+                                          {...props}
+                                        />
+                                      ),
+                                      li: ({ ...props }) => (
+                                        <li className="ml-6" {...props} />
+                                      ),
+                                      code: ({ inline, children, ...props }) => (
+                                        <span
+                                          className="text-gray-300 px-1 py-1 rounded-md text-sm bg-[#9C88FF30]"
+                                          {...props}
+                                        >
+                                          {children}
+                                        </span>
+                                      ),
+                                      strong: ({ children }) => (
+                                        <span className="text-gray-300">
+                                          {children}
+                                        </span>
+                                      ),
+                                    }}
+                                  >
+                                    {message.content}
+                                  </ReactMarkdown>
+                                </article>
+                              ) : (
+                                message.content
+                              )}
+                            </div>
                           </motion.div>
                         )}
                       </div>
@@ -333,7 +404,8 @@ export default function ChatInterface() {
                         How can I help you today?
                       </h1>
                       <p className="text-sm text-gray-400">
-                        You can ask about a prompt below or type in your own query.
+                        You can ask about a prompt below or type in your own
+                        query.
                       </p>
                     </div>
 
@@ -362,7 +434,9 @@ export default function ChatInterface() {
                           <h3 className="font-medium text-gray-200 mb-2">
                             {card.title}
                           </h3>
-                          <p className="text-sm text-gray-400">{card.description}</p>
+                          <p className="text-sm text-gray-400">
+                            {card.description}
+                          </p>
                         </Card>
                       ))}
                     </div>
